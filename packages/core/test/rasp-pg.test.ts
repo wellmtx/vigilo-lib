@@ -2,7 +2,8 @@ import pg from 'pg';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
-import { instrumentPg, VigiloBlockedError } from '../src/rasp/pg.js';
+import { instrumentPg } from '../src/rasp/pg.js';
+import { VigiloBlockedError } from '../src/rasp/wrap.js';
 
 // Substitui a ida ao banco antes de instrumentar: o wrapper envolve o stub, nos protótipos reais do pg.
 const clientQuery = vi.fn(async () => ({ rows: [] }));

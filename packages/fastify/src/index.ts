@@ -126,5 +126,13 @@ function toNormalized(request: FastifyRequest, client: VigiloClient): Normalized
  */
 export const vigilo = fp(plugin, { fastify: '5.x', name: '@vigilo/fastify' });
 export default vigilo;
-export { createVigilo, instrumentPg, VigiloBlockedError } from '@vigilo/core';
+export {
+  createVigilo,
+  instrumentChildProcess,
+  instrumentFs,
+  instrumentMongodb,
+  instrumentMysql2,
+  instrumentPg,
+  VigiloBlockedError,
+} from '@vigilo/core';
 export type { VigiloClient, VigiloOptions } from '@vigilo/core';

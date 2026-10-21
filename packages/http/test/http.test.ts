@@ -62,6 +62,7 @@ describe('@vigilo/http', () => {
   });
 });
 
+// `1 || 1=1` passa pelas assinaturas (ver o corpus de detecção): só a RASP pega.
 describe('@vigilo/http + RASP (pg)', () => {
   async function startDb(mode: 'monitor' | 'block') {
     const sent: VigiloEvent[] = [];
@@ -85,7 +86,7 @@ describe('@vigilo/http + RASP (pg)', () => {
   it('em block impede a injeção vinda da query string', async () => {
     const { port, sent, client } = await startDb('block');
     executed.length = 0;
-    expect(await get(port, `/users?id=${encodeURIComponent('1 OR true')}`)).toBe(500);
+    expect(await get(port, `/users?id=${encodeURIComponent('1 || 1=1')}`)).toBe(500);
     await client.flush();
     expect(executed).toHaveLength(0);
     expect(sent[0]).toMatchObject({ blocked: true, threats: [{ layer: 'rasp', location: 'query.id' }] });
@@ -94,7 +95,7 @@ describe('@vigilo/http + RASP (pg)', () => {
   it('em monitor deixa seguir e registra', async () => {
     const { port, sent, client } = await startDb('monitor');
     executed.length = 0;
-    expect(await get(port, `/users?id=${encodeURIComponent('1 OR true')}`)).toBe(200);
+    expect(await get(port, `/users?id=${encodeURIComponent('1 || 1=1')}`)).toBe(200);
     await client.flush();
     expect(executed).toHaveLength(1);
     expect(sent[0]).toMatchObject({ blocked: false, threats: [{ layer: 'rasp' }] });

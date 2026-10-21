@@ -114,8 +114,10 @@ export function tokenizeSql(sql: string, dialect: SqlDialect = 'postgres'): SqlT
       continue;
     }
 
-    if (DIGIT.test(ch) || (ch === '.' && next !== undefined && DIGIT.test(next))) {
-      i = skipNumber(sql, i);
+    // Sinal unário faz parte do número (`id = -1`): sozinho não muda a estrutura da query.
+    const signed = (ch === '-' || ch === '+') && next !== undefined && DIGIT.test(next) && unaryPosition(sql, tokens);
+    if (signed || DIGIT.test(ch) || (ch === '.' && next !== undefined && DIGIT.test(next))) {
+      i = skipNumber(sql, signed ? i + 1 : i);
       tokens.push({ kind: 'number', start, end: i });
       continue;
     }
@@ -207,6 +209,14 @@ function isHarmless(sql: string, token: SqlToken): boolean {
     default:
       return false;
   }
+}
+
+/** O sinal é unário quando vem no início ou depois de operador, palavra-chave, `(` ou `,`. */
+function unaryPosition(sql: string, tokens: SqlToken[]): boolean {
+  const previous = tokens[tokens.length - 1];
+  if (!previous) return true;
+  if (previous.kind === 'operator' || previous.kind === 'keyword') return true;
+  return previous.kind === 'punctuation' && sql[previous.start] !== ')' && sql[previous.start] !== ']';
 }
 
 function startsComment(sql: string, i: number, dialect: SqlDialect): boolean {

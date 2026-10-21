@@ -10,7 +10,9 @@
     "build": "pnpm -r --filter \"./packages/**\" run build",
     "typecheck": "pnpm --filter @vigilo/core run build && pnpm -r --filter \"./packages/**\" run typecheck",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "eval:detection": "vitest run packages/core/test/detection-corpus.test.ts --reporter=verbose",
+    "bench": "pnpm build && node packages/core/bench/overhead.js && node packages/express/bench/http.js"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

@@ -45,18 +45,29 @@ import { withVigilo } from '@vigilo/http';
 http.createServer(withVigilo(handler, { apiKey: process.env.VIGILO_KEY })).listen(3000);
 ```
 
-### Camada RASP (PostgreSQL)
+### Camada RASP (drivers e APIs do Node)
 
-Com o driver `pg` instrumentado, a lib confere cada query antes de ela ir para o banco. Se uma entrada da requisição (params, query string, corpo, chaves do corpo ou cabeçalhos como `user-agent`) mudou a estrutura do SQL, por exemplo fechando aspas ou acrescentando `OR`, `UNION`, `;` ou um comentário, o evento registra uma ameaça `sqli` de severidade 5 com `layer: 'rasp'`. Isso confirma que a rota é vulnerável. Queries parametrizadas (`$1`) nunca disparam.
+Com os drivers instrumentados, a lib confere cada chamada **antes** de ela chegar ao banco, ao disco ou ao shell. Se uma entrada da requisição (params, query string, corpo, chaves do corpo ou cabeçalhos como `user-agent`) mudou a estrutura do que vai ser executado, o evento registra uma ameaça de severidade 5 com `layer: 'rasp'`. Isso confirma que a rota é vulnerável, com poucos falsos positivos.
+
+| Função | Alvo | Detecta | Regra |
+| --- | --- | --- | --- |
+| `instrumentPg(pg)` | `pg` (`Client`, `Pool`) | SQL injection | `rasp.sqli.pg` |
+| `instrumentMysql2(mysql)` | `mysql2` e `mysql2/promise` (`query`, `execute`, pool) | SQL injection | `rasp.sqli.mysql2` |
+| `instrumentMongodb(mongodb)` | `mongodb` (`Collection`); com Mongoose, `mongoose.mongo` | operador `$` vindo do usuário e código em `$where` | `rasp.nosqli.mongodb` |
+| `instrumentFs()` | `node:fs` (callback, sync, `fs/promises`, streams) | path traversal (`../` que sobe de diretório, caminho absoluto do usuário) | `rasp.traversal.fs` |
+| `instrumentChildProcess()` | `node:child_process` com shell | command injection (`;`, `\|`, `&&`, `$(...)`, crase, saída de aspas) | `rasp.cmdi.child_process` |
 
 ```js
 import pg from 'pg';
-import { instrumentPg, shield } from '@vigilo/express';   // também em @vigilo/fastify e @vigilo/http
+import { instrumentFs, instrumentPg, shield } from '@vigilo/express';   // também em @vigilo/fastify e @vigilo/http
 
-instrumentPg(pg);   // uma vez, na inicialização; vale para Client e Pool
+instrumentPg(pg);   // uma vez, na inicialização
+instrumentFs();
 ```
 
-No modo `block`, a query não é executada e a chamada falha com `VigiloBlockedError` (`code: 'VIGILO_BLOCKED'`), pelo mesmo canal que o `pg` usaria (promise ou callback). O tratamento de erro da sua aplicação decide a resposta. Cursores e streams (objetos com `submit`) só são registrados, nunca bloqueados. Queries fora de uma requisição (jobs, migrations) não são verificadas.
+Queries parametrizadas (`$1`, `?`), filtros com operadores escritos pelo desenvolvedor e `spawn`/`execFile` sem shell nunca disparam. Chamadas fora de uma requisição (jobs, migrations) não são verificadas.
+
+No modo `block`, a chamada não é executada e falha com `VigiloBlockedError` (`code: 'VIGILO_BLOCKED'`) pelo canal de erro normal dela: callback, promise rejeitada ou exceção (funções síncronas, `find`/`aggregate` do MongoDB, streams do `fs` e `child_process`). O tratamento de erro da sua aplicação decide a resposta; veja o [exemplo](examples/express-pg). Cursores do `pg` e a API de eventos do `mysql2` (sem callback) só são registrados, nunca bloqueados.
 
 ### Opções principais
 
@@ -84,11 +95,26 @@ No modo `block`, a query não é executada e a chamada falha com `VigiloBlockedE
 - XSS refletido
 - User agents de scanners e paths típicos de varredura (`/.env`, `/wp-login.php`)
 - Varredura por excesso de 404, força bruta em rotas de login e excesso de volume (padrão: 600 requisições por minuto), por IP
-- SQL injection confirmada no driver `pg` (camada RASP)
+- Confirmação na execução (camada RASP): SQL injection no `pg` e no `mysql2`, NoSQL injection no `mongodb`, path traversal no `fs` e command injection no `child_process`
 
 O formato dos eventos enviados está em [docs/event-contract.md](docs/event-contract.md) (schema v1, congelado).
 
-Próximos passos da RASP: `mysql2`, `mongodb`, `fs` e `child_process`.
+## Qualidade e desempenho
+
+Medidos em 21/10/2026 com Node 24, sobre um corpus próprio de payloads de ataque e entradas legítimas típicas de APIs brasileiras ([corpus](packages/core/test/corpus)). Como o corpus foi escrito por nós, os números servem para evitar regressões, não como garantia contra qualquer ataque.
+
+| Camada | Detecção | Falso positivo |
+| --- | --- | --- |
+| Assinaturas (na requisição) | SQLi 90,9%, NoSQLi 100%, traversal 100%, XSS 93,8%, scanners 100% | 0% em 66 entradas legítimas |
+| RASP (na execução) | 100% em SQLi, NoSQLi, traversal e command injection | 0% em 66 entradas legítimas |
+
+| Overhead (p99) | Tempo |
+| --- | --- |
+| Por requisição no Express (middleware + registro do evento) | 14 µs |
+| `inspect` + `record` com corpo JSON de ~1 KB | 34 µs |
+| Checagem da RASP por query | 8 µs |
+
+Reproduza com `pnpm eval:detection` e `pnpm bench`.
 
 ## Desenvolvimento
 
@@ -99,6 +125,8 @@ pnpm install
 pnpm test          # vitest
 pnpm build         # compila os pacotes e gera packages/core/schemas/
 pnpm typecheck
+pnpm eval:detection   # tabela de detecção e falsos positivos sobre o corpus
+pnpm bench            # overhead por requisição e por query
 ```
 
 Estrutura:
@@ -107,6 +135,7 @@ Estrutura:
 packages/                 lib open source (core + adapters)
 packages/core/schemas/    JSON Schema e exemplo do contrato de eventos (gerados no build)
 docs/event-contract.md    formato dos eventos enviados para a plataforma
+examples/express-pg/      app vulnerável de exemplo (roda sem banco, com pg-mem)
 ```
 
 ## Licença

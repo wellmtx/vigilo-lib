@@ -101,5 +101,13 @@ function toNormalized(req: Request, client: VigiloClient): NormalizedRequest {
   };
 }
 
-export { createVigilo, instrumentPg, VigiloBlockedError } from '@vigilo/core';
+export {
+  createVigilo,
+  instrumentChildProcess,
+  instrumentFs,
+  instrumentMongodb,
+  instrumentMysql2,
+  instrumentPg,
+  VigiloBlockedError,
+} from '@vigilo/core';
 export type { VigiloClient, VigiloOptions } from '@vigilo/core';

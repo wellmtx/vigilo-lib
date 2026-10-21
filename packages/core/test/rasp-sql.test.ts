@@ -130,8 +130,18 @@ describe('findSqlInjection: falsos positivos', () => {
     expect(findSqlInjection('SELECT * FROM users WHERE name = $1', [input("x' OR '1'='1")])).toBeUndefined();
   });
 
-  it('número concatenado é um único token', () => {
+  it('número concatenado é um único token, inclusive negativo', () => {
     expect(detects((v) => `SELECT * FROM users WHERE id = ${v}`, '42')).toBe(false);
+    expect(detects((v) => `SELECT * FROM users WHERE balance > ${v}`, '-1.5')).toBe(false);
+    expect(detects((v) => `SELECT * FROM t LIMIT 10 OFFSET ${v}`, '-1')).toBe(false);
+  });
+
+  it('subtração binária continua sendo operador', () => {
+    expect(kinds('a -1')).toEqual([
+      ['identifier', 'a'],
+      ['operator', '-'],
+      ['number', '1'],
+    ]);
   });
 
   it('texto com palavras SQL dentro de um literal', () => {
