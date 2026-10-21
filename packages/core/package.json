@@ -22,5 +22,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/export-contract.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
   }
 }

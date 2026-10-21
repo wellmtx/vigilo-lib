@@ -1,7 +1,19 @@
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 import type { VigiloEvent } from '@vigilo/core';
-import { vigilo } from '../src/index.js';
+import { instrumentPg, vigilo } from '../src/index.js';
+
+/** Driver falso com o formato do `pg`: registra o SQL em vez de ir ao banco. */
+const executed: string[] = [];
+class FakeClient {
+  async query(text: string) {
+    executed.push(text);
+    return { rows: [] };
+  }
+}
+instrumentPg({ Client: FakeClient });
+const db = new FakeClient();
+
 
 async function build(mode: 'monitor' | 'block') {
   const sent: VigiloEvent[] = [];
@@ -38,6 +50,47 @@ describe('@vigilo/fastify', () => {
     expect(res.statusCode).toBe(404);
     await app.vigilo.flush();
     expect(sent[0]).toMatchObject({ status: 404, threatType: 'scan' });
+    await app.close();
+  });
+});
+
+describe('@vigilo/fastify + RASP (pg)', () => {
+  async function buildDb(mode: 'monitor' | 'block') {
+    const sent: VigiloEvent[] = [];
+    const app = Fastify();
+    await app.register(vigilo, { mode, flushIntervalMs: 0, send: async (events) => void sent.push(...events) });
+    // Rota vulnerável de propósito: concatena o corpo no SQL.
+    app.post('/search', async (request) => {
+      const { name } = request.body as { name: string };
+      await db.query(`SELECT * FROM users WHERE name = '${name}'`);
+      return { ok: true };
+    });
+    await app.ready();
+    return { app, sent };
+  }
+
+  // Sem `=` nem comentário: passa pelas assinaturas e só a RASP pega.
+  const payload = { name: "x' OR active OR '" };
+
+  it('em monitor registra a injeção vinda do corpo', async () => {
+    const { app, sent } = await buildDb('monitor');
+    executed.length = 0;
+    const res = await app.inject({ method: 'POST', url: '/search', payload });
+    expect(res.statusCode).toBe(200);
+    await app.vigilo.flush();
+    expect(executed).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ threatType: 'sqli', threats: [{ layer: 'rasp', location: 'body.name' }] });
+    await app.close();
+  });
+
+  it('em block impede a query', async () => {
+    const { app, sent } = await buildDb('block');
+    executed.length = 0;
+    const res = await app.inject({ method: 'POST', url: '/search', payload });
+    expect(res.statusCode).toBe(500);
+    await app.vigilo.flush();
+    expect(executed).toHaveLength(0);
+    expect(sent[0]).toMatchObject({ blocked: true });
     await app.close();
   });
 });

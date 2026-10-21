@@ -3,7 +3,19 @@ import type { Server } from 'node:http';
 import express from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { VigiloEvent } from '@vigilo/core';
-import { shield } from '../src/index.js';
+import { instrumentPg, shield } from '../src/index.js';
+
+/** Driver falso com o formato do `pg`: registra o SQL em vez de ir ao banco. */
+const executed: string[] = [];
+class FakeClient {
+  async query(text: string) {
+    executed.push(text);
+    return { rows: [] };
+  }
+}
+instrumentPg({ Client: FakeClient });
+const db = new FakeClient();
+
 
 let server: Server | undefined;
 afterEach(() => server?.close());
@@ -56,5 +68,54 @@ describe('@vigilo/express', () => {
     await fetch(`${base}/users/7`);
     await client.flush();
     expect(sent[0]).toMatchObject({ threatType: null, payload: null, route: '/users/:id' });
+  });
+});
+
+describe('@vigilo/express + RASP (pg)', () => {
+  async function startDb(mode: 'monitor' | 'block') {
+    const sent: VigiloEvent[] = [];
+    const app = express();
+    const mw = shield({ mode, flushIntervalMs: 0, send: async (events) => void sent.push(...events) });
+    app.use(mw);
+    // Rota vulnerável de propósito: concatena o parâmetro no SQL.
+    app.get('/users/:id', async (req, res) => {
+      await db.query(`SELECT * FROM users WHERE id = ${req.params.id}`);
+      res.json({ ok: true });
+    });
+    server = app.listen(0);
+    await new Promise((resolve) => server!.once('listening', resolve));
+    return { base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, sent, client: mw.client };
+  }
+
+  it('em monitor registra a injeção confirmada no driver, com o local do parâmetro', async () => {
+    const { base, sent, client } = await startDb('monitor');
+    executed.length = 0;
+    expect((await fetch(`${base}/users/${encodeURIComponent('1 OR true')}`)).status).toBe(200);
+    await client.flush();
+    expect(executed).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      threatType: 'sqli',
+      severity: 5,
+      blocked: false,
+      threats: [{ layer: 'rasp', location: 'params.id', rule: 'rasp.sqli.pg' }],
+    });
+  });
+
+  it('em block impede a query, que falha no handler', async () => {
+    const { base, sent, client } = await startDb('block');
+    executed.length = 0;
+    expect((await fetch(`${base}/users/${encodeURIComponent('1 OR true')}`)).status).toBe(500);
+    await client.flush();
+    expect(executed).toHaveLength(0);
+    expect(sent[0]).toMatchObject({ blocked: true, threats: [{ layer: 'rasp' }] });
+  });
+
+  it('requisição legítima chega ao banco sem ameaça', async () => {
+    const { base, sent, client } = await startDb('block');
+    executed.length = 0;
+    expect((await fetch(`${base}/users/42`)).status).toBe(200);
+    await client.flush();
+    expect(executed).toEqual(['SELECT * FROM users WHERE id = 42']);
+    expect(sent[0]).toMatchObject({ threatType: null, blocked: false });
   });
 });

@@ -3,8 +3,10 @@ import {
   headerValue,
   normalizeRoutePath,
   resolveClientIp,
+  runWithContext,
   type Decision,
   type NormalizedRequest,
+  type RequestContext,
   type VigiloClient,
   type VigiloOptions,
 } from '@vigilo/core';
@@ -38,11 +40,20 @@ export function shield(options: ShieldOptions = {}): ShieldMiddleware {
   const middleware = (req: Request, res: Response, next: NextFunction) => {
     let normalized: NormalizedRequest;
     let decision: Decision;
+    let context: RequestContext;
     const start = process.hrtime.bigint();
 
     try {
       normalized = toNormalized(req, client);
       decision = client.inspect(normalized);
+      // Lido no momento da query: `req.params` só é preenchido quando a rota casa.
+      context = client.createContext(() => ({
+        query: req.query,
+        body: req.body,
+        params: req.params,
+        path: req.path,
+        headers: req.headers,
+      }));
     } catch {
       next();
       return;
@@ -55,7 +66,7 @@ export function shield(options: ShieldOptions = {}): ShieldMiddleware {
           normalized.route = `${req.baseUrl ?? ''}${req.route.path}`;
         }
         const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-        client.record(normalized, { status: res.statusCode, durationMs, decision });
+        client.record(normalized, { status: res.statusCode, durationMs, decision, context });
       } catch {
         // fail-open
       }
@@ -69,7 +80,7 @@ export function shield(options: ShieldOptions = {}): ShieldMiddleware {
         // Se a resposta de bloqueio falhar, a requisição segue.
       }
     }
-    next();
+    runWithContext(context, next);
   };
 
   return Object.assign(middleware, { client });
@@ -90,5 +101,5 @@ function toNormalized(req: Request, client: VigiloClient): NormalizedRequest {
   };
 }
 
-export { createVigilo } from '@vigilo/core';
+export { createVigilo, instrumentPg, VigiloBlockedError } from '@vigilo/core';
 export type { VigiloClient, VigiloOptions } from '@vigilo/core';

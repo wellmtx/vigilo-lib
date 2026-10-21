@@ -45,6 +45,19 @@ import { withVigilo } from '@vigilo/http';
 http.createServer(withVigilo(handler, { apiKey: process.env.VIGILO_KEY })).listen(3000);
 ```
 
+### Camada RASP (PostgreSQL)
+
+Com o driver `pg` instrumentado, a lib confere cada query antes de ela ir para o banco. Se uma entrada da requisição (params, query string, corpo, chaves do corpo ou cabeçalhos como `user-agent`) mudou a estrutura do SQL, por exemplo fechando aspas ou acrescentando `OR`, `UNION`, `;` ou um comentário, o evento registra uma ameaça `sqli` de severidade 5 com `layer: 'rasp'`. Isso confirma que a rota é vulnerável. Queries parametrizadas (`$1`) nunca disparam.
+
+```js
+import pg from 'pg';
+import { instrumentPg, shield } from '@vigilo/express';   // também em @vigilo/fastify e @vigilo/http
+
+instrumentPg(pg);   // uma vez, na inicialização; vale para Client e Pool
+```
+
+No modo `block`, a query não é executada e a chamada falha com `VigiloBlockedError` (`code: 'VIGILO_BLOCKED'`), pelo mesmo canal que o `pg` usaria (promise ou callback). O tratamento de erro da sua aplicação decide a resposta. Cursores e streams (objetos com `submit`) só são registrados, nunca bloqueados. Queries fora de uma requisição (jobs, migrations) não são verificadas.
+
 ### Opções principais
 
 | Opção | Padrão | Descrição |
@@ -71,10 +84,11 @@ http.createServer(withVigilo(handler, { apiKey: process.env.VIGILO_KEY })).liste
 - XSS refletido
 - User agents de scanners e paths típicos de varredura (`/.env`, `/wp-login.php`)
 - Varredura por excesso de 404, força bruta em rotas de login e excesso de volume (padrão: 600 requisições por minuto), por IP
+- SQL injection confirmada no driver `pg` (camada RASP)
 
 O formato dos eventos enviados está em [docs/event-contract.md](docs/event-contract.md) (schema v1, congelado).
 
-Próximo passo: camada RASP, que envolve os drivers (`pg`, `mysql2`, `mongodb`, `fs`, `child_process`) para confirmar quando a entrada do usuário altera a estrutura da query.
+Próximos passos da RASP: `mysql2`, `mongodb`, `fs` e `child_process`.
 
 ## Desenvolvimento
 

@@ -67,7 +67,7 @@ Todos os campos estão sempre presentes; os opcionais vêm como `null`.
 | `rule` | string | Regra que disparou, ex.: `sqli.union-select`. Até 64 |
 | `layer` | enum | `signature` (camada 1), `rasp` (camada 1b, nos drivers), `ip` (camada 2) |
 
-`cmdi` e `layer: "rasp"` já fazem parte do contrato, mas só serão emitidos quando a camada RASP existir. Uma ameaça `rasp` confirma que a entrada alterou a estrutura da query ou do comando, então a plataforma pode tratá-la com mais confiança do que uma assinatura.
+Uma ameaça `rasp` confirma que a entrada alterou a estrutura da query ou do comando, então a plataforma pode tratá-la com mais confiança do que uma assinatura. Hoje a RASP emite `sqli` com severidade 5 e regra `rasp.sqli.pg`, com `location` apontando a entrada que causou a injeção (ex.: `params.id`, `body.name`). Novos drivers seguem o padrão `rasp.<tipo>.<driver>`. `cmdi` já faz parte do contrato e será emitido quando o `child_process` for instrumentado. Quando a RASP bloqueia, `blocked` fica `true` e `status` é o que a aplicação respondeu depois do erro (em geral 500).
 
 ### Exemplo
 

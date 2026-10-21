@@ -3,8 +3,10 @@ import {
   headerValue,
   normalizeRoutePath,
   resolveClientIp,
+  runWithContext,
   type Decision,
   type NormalizedRequest,
+  type RequestContext,
   type VigiloClient,
   type VigiloOptions,
 } from '@vigilo/core';
@@ -25,6 +27,7 @@ declare module 'fastify' {
 interface State {
   normalized: NormalizedRequest;
   decision: Decision;
+  context?: RequestContext;
 }
 
 const plugin: FastifyPluginAsync<VigiloFastifyOptions> = async (fastify, options) => {
@@ -54,6 +57,27 @@ const plugin: FastifyPluginAsync<VigiloFastifyOptions> = async (fastify, options
     }
   });
 
+  // Hook em estilo callback, registrado por último: o handler roda como continuação de `done`,
+  // então herda o contexto da RASP. Não roda se a requisição foi bloqueada acima.
+  fastify.addHook('preHandler', (request, _reply, done) => {
+    const state = states.get(request);
+    let context: RequestContext;
+    try {
+      if (!state) return done();
+      context = client.createContext(() => ({
+        query: request.query,
+        body: request.body,
+        params: request.params,
+        path: state.normalized.path,
+        headers: request.headers,
+      }));
+      state.context = context;
+    } catch {
+      return done();
+    }
+    runWithContext(context, () => done());
+  });
+
   fastify.addHook('onResponse', async (request, reply) => {
     try {
       // 404 e erros antes do preHandler não passam pelo hook acima.
@@ -62,7 +86,12 @@ const plugin: FastifyPluginAsync<VigiloFastifyOptions> = async (fastify, options
         decision: { threats: [], block: false },
       };
       if (!states.has(request)) state.decision = client.inspect(state.normalized);
-      client.record(state.normalized, { status: reply.statusCode, durationMs: reply.elapsedTime, decision: state.decision });
+      client.record(state.normalized, {
+        status: reply.statusCode,
+        durationMs: reply.elapsedTime,
+        decision: state.decision,
+        context: state.context,
+      });
     } catch {
       // fail-open
     }
@@ -97,5 +126,5 @@ function toNormalized(request: FastifyRequest, client: VigiloClient): Normalized
  */
 export const vigilo = fp(plugin, { fastify: '5.x', name: '@vigilo/fastify' });
 export default vigilo;
-export { createVigilo } from '@vigilo/core';
+export { createVigilo, instrumentPg, VigiloBlockedError } from '@vigilo/core';
 export type { VigiloClient, VigiloOptions } from '@vigilo/core';

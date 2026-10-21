@@ -1,3 +1,5 @@
+import type { RequestContext } from './rasp/context.js';
+
 export type Mode = 'monitor' | 'block';
 
 export type ThreatType =
@@ -55,6 +57,8 @@ export interface ResponseOutcome {
   status: number;
   durationMs: number;
   decision: Decision;
+  /** Contexto da camada RASP, com as ameaças confirmadas nos drivers durante a requisição. */
+  context?: RequestContext | undefined;
 }
 
 /**

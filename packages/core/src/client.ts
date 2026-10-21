@@ -1,5 +1,6 @@
 import { clip, clipThreats, LIMITS } from './contract.js';
 import { detect, highestSeverity } from './detectors/index.js';
+import type { InputSources, RequestContext } from './rasp/context.js';
 import { buildPayload, type MaskingOptions } from './masking.js';
 import { IpTracker, type TrackerOptions } from './tracker.js';
 import { EventTransport, type SendFn, type TransportStats } from './transport.js';
@@ -40,6 +41,11 @@ export interface VigiloClient {
   readonly trustProxy: TrustProxy;
   /** Camada 1 e flags da camada 2. Nunca lança exceção (fail-open). */
   inspect(req: NormalizedRequest): Decision;
+  /**
+   * Cria o contexto da camada RASP para uma requisição. O adapter executa o handler dentro
+   * dele (`runWithContext`) e o devolve em `record`, no campo `outcome.context`.
+   */
+  createContext(sources: () => InputSources): RequestContext;
   /** Registra o resultado da requisição e enfileira o evento. Nunca lança exceção. */
   record(req: NormalizedRequest, outcome: ResponseOutcome): void;
   isIgnored(route: string): boolean;
@@ -92,10 +98,14 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
       }
     },
 
+    createContext(sources) {
+      return { mode, blockSeverity, logger, sources, threats: [], blocked: false };
+    },
+
     record(req, outcome) {
       try {
         if (isIgnored(req.route)) return;
-        const all = [...outcome.decision.threats];
+        const all = [...outcome.decision.threats, ...(outcome.context?.threats ?? [])];
         const observed = tracker.observe(req.ip, req.route, outcome.status);
         if (observed) all.push(observed);
         const threats = clipThreats(all);
@@ -117,7 +127,7 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
           threatType: top?.type ?? null,
           severity: top?.severity ?? null,
           threats,
-          blocked: outcome.decision.block,
+          blocked: outcome.decision.block || outcome.context?.blocked === true,
           payload: suspicious ? buildPayload({ query: req.query, body: req.body }, options.masking) : null,
         };
         transport.push(event);

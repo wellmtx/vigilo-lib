@@ -4,8 +4,10 @@ import {
   headerValue,
   normalizeRoutePath,
   resolveClientIp,
+  runWithContext,
   type Decision,
   type NormalizedRequest,
+  type RequestContext,
   type VigiloClient,
   type VigiloOptions,
 } from '@vigilo/core';
@@ -39,11 +41,14 @@ export function withVigilo(handler: RequestListener, options: WithVigiloOptions 
   const listener: RequestListener = (req, res) => {
     let normalized: NormalizedRequest;
     let decision: Decision;
+    let context: RequestContext;
     const start = process.hrtime.bigint();
 
     try {
       normalized = toNormalized(req, client);
       decision = client.inspect(normalized);
+      const sources = { query: normalized.query, path: normalized.path, headers: req.headers };
+      context = client.createContext(() => sources);
     } catch {
       handler(req, res);
       return;
@@ -52,7 +57,7 @@ export function withVigilo(handler: RequestListener, options: WithVigiloOptions 
     res.once('finish', () => {
       try {
         const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-        client.record(normalized, { status: res.statusCode, durationMs, decision });
+        client.record(normalized, { status: res.statusCode, durationMs, decision, context });
       } catch {
         // fail-open
       }
@@ -66,7 +71,7 @@ export function withVigilo(handler: RequestListener, options: WithVigiloOptions 
         // fail-open
       }
     }
-    handler(req, res);
+    runWithContext(context, () => handler(req, res));
   };
 
   return Object.assign(listener, { client });
@@ -94,5 +99,5 @@ function toNormalized(req: IncomingMessage, client: VigiloClient): NormalizedReq
   };
 }
 
-export { createVigilo } from '@vigilo/core';
+export { createVigilo, instrumentPg, VigiloBlockedError } from '@vigilo/core';
 export type { VigiloClient, VigiloOptions } from '@vigilo/core';
