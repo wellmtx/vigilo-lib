@@ -1,0 +1,26 @@
+{
+  "name": "@vigilo/core",
+  "version": "0.0.1",
+  "description": "Vigilo core: detecção de ataques, mascaramento e envio de eventos.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/export-contract.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

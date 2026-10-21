@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vigilosec.com/schemas/event-batch/v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sdk",
+    "sentAt",
+    "events"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sdk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      }
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "ts",
+          "method",
+          "route",
+          "status",
+          "durationMs",
+          "ip",
+          "srcPort",
+          "userAgent",
+          "threatType",
+          "severity",
+          "threats",
+          "blocked",
+          "payload"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "method": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "route": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 999
+          },
+          "durationMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "ipv4"
+              },
+              {
+                "type": "string",
+                "format": "ipv6"
+              }
+            ]
+          },
+          "srcPort": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userAgent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threatType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "sqli",
+                  "nosqli",
+                  "traversal",
+                  "xss",
+                  "scanner",
+                  "scan",
+                  "bruteforce",
+                  "ratelimit",
+                  "cmdi"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threats": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "severity",
+                "location",
+                "rule",
+                "layer"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "sqli",
+                    "nosqli",
+                    "traversal",
+                    "xss",
+                    "scanner",
+                    "scan",
+                    "bruteforce",
+                    "ratelimit",
+                    "cmdi"
+                  ]
+                },
+                "severity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "location": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "rule": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "layer": {
+                  "enum": [
+                    "signature",
+                    "rasp",
+                    "ip"
+                  ]
+                }
+              }
+            }
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2064
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

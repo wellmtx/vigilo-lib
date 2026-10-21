@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "sdk": {
+    "name": "@vigilo/core",
+    "version": "0.0.1"
+  },
+  "sentAt": "2026-10-21T16:40:05.000Z",
+  "events": [
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e00",
+      "ts": "2026-10-21T16:40:00.000Z",
+      "method": "GET",
+      "route": "/users/:id",
+      "status": 200,
+      "durationMs": 3.413,
+      "ip": "203.0.113.10",
+      "srcPort": 51234,
+      "userAgent": "Mozilla/5.0",
+      "threatType": null,
+      "severity": null,
+      "threats": [],
+      "blocked": false,
+      "payload": null
+    },
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e01",
+      "ts": "2026-10-21T16:40:01.000Z",
+      "method": "GET",
+      "route": "/users/:id",
+      "status": 200,
+      "durationMs": 3.413,
+      "ip": "192.0.2.44",
+      "srcPort": 51234,
+      "userAgent": "sqlmap/1.7",
+      "threatType": "sqli",
+      "severity": 4,
+      "threats": [
+        {
+          "type": "sqli",
+          "severity": 4,
+          "location": "query.id",
+          "rule": "sqli.union-select",
+          "layer": "signature"
+        },
+        {
+          "type": "scanner",
+          "severity": 2,
+          "location": "header.user-agent",
+          "rule": "scanner.user-agent",
+          "layer": "signature"
+        }
+      ],
+      "blocked": false,
+      "payload": "{\"query\":{\"id\":\"1 UNION SELECT password FROM users\"}}"
+    },
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e02",
+      "ts": "2026-10-21T16:40:02.000Z",
+      "method": "POST",
+      "route": "/login",
+      "status": 401,
+      "durationMs": 3.413,
+      "ip": "2001:db8::1",
+      "srcPort": null,
+      "userAgent": null,
+      "threatType": "nosqli",
+      "severity": 4,
+      "threats": [
+        {
+          "type": "nosqli",
+          "severity": 4,
+          "location": "body.password.$ne",
+          "rule": "nosqli.operator-key",
+          "layer": "signature"
+        }
+      ],
+      "blocked": false,
+      "payload": "{\"query\":{},\"body\":{\"email\":\"[EMAIL]\",\"password\":\"[REDACTED]\"}}"
+    },
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e03",
+      "ts": "2026-10-21T16:40:03.000Z",
+      "method": "GET",
+      "route": "/products",
+      "status": 200,
+      "durationMs": 3.413,
+      "ip": "198.51.100.7",
+      "srcPort": 51234,
+      "userAgent": "Mozilla/5.0",
+      "threatType": null,
+      "severity": null,
+      "threats": [],
+      "blocked": false,
+      "payload": null
+    },
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e04",
+      "ts": "2026-10-21T16:40:04.000Z",
+      "method": "GET",
+      "route": "/products",
+      "status": 200,
+      "durationMs": 3.413,
+      "ip": "198.51.100.7",
+      "srcPort": 51234,
+      "userAgent": "Mozilla/5.0",
+      "threatType": "ratelimit",
+      "severity": 3,
+      "threats": [
+        {
+          "type": "ratelimit",
+          "severity": 3,
+          "location": "ip",
+          "rule": "ratelimit.ip-volume",
+          "layer": "ip"
+        }
+      ],
+      "blocked": false,
+      "payload": "{\"query\":{}}"
+    }
+  ]
+}
