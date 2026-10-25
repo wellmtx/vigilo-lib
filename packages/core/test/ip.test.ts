@@ -31,5 +31,40 @@ describe('normalizeRoutePath', () => {
 
   it('mantém segmentos textuais', () => {
     expect(normalizeRoutePath('/api/v1/health')).toBe('/api/v1/health');
+    expect(normalizeRoutePath('/api/oauth2/token')).toBe('/api/oauth2/token');
+    expect(normalizeRoutePath('/produtos/camiseta-azul')).toBe('/produtos/camiseta-azul');
+  });
+
+  it('mantém alvos de scanners', () => {
+    expect(normalizeRoutePath('/.env')).toBe('/.env');
+    expect(normalizeRoutePath('/.git/config')).toBe('/.git/config');
+    expect(normalizeRoutePath('/wp-login.php')).toBe('/wp-login.php');
+  });
+
+  it('não deixa payload de ataque no route', () => {
+    expect(normalizeRoutePath('/users/1%20UNION%20SELECT%20password%20FROM%20users')).toBe('/users/:id');
+    expect(normalizeRoutePath("/users/1' OR '1'='1")).toBe('/users/:id');
+    expect(normalizeRoutePath('/search/<script>alert(1)</script>')).toBe('/search/:id/:id');
+    expect(normalizeRoutePath('/files/../../etc/passwd')).toBe('/files/:id/:id/etc/passwd');
+    expect(normalizeRoutePath('/files/..%2f..%2fetc%2fpasswd')).toBe('/files/:id');
+    expect(normalizeRoutePath('/run/$(id)')).toBe('/run/:id');
+  });
+
+  it('não deixa dados pessoais no route', () => {
+    expect(normalizeRoutePath('/clientes/123.456.789-00')).toBe('/clientes/:id');
+    expect(normalizeRoutePath('/contatos/joao@exemplo.com.br')).toBe('/contatos/:id');
+    expect(normalizeRoutePath('/telefones/+5511987654321')).toBe('/telefones/:id');
+    expect(normalizeRoutePath('/reset/eyJhbGciOiJIUzI1NiJ9')).toBe('/reset/:id');
+    expect(normalizeRoutePath('/relatorios/2026-10-25')).toBe('/relatorios/:id');
+  });
+
+  it('troca segmentos longos demais', () => {
+    expect(normalizeRoutePath(`/a/${'x'.repeat(65)}`)).toBe('/a/:id');
+  });
+
+  it('ignora a query string e mantém a raiz', () => {
+    expect(normalizeRoutePath('/users/42?email=a@b.com')).toBe('/users/:id');
+    expect(normalizeRoutePath('/')).toBe('/');
+    expect(normalizeRoutePath('')).toBe('/');
   });
 });

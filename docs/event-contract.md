@@ -24,7 +24,13 @@ Content-Type: application/json
 Content-Encoding: gzip
 ```
 
-Resposta esperada: `202 Accepted`. A lib trata qualquer outra resposta como falha e tenta de novo com backoff (3 tentativas); depois disso o lote é descartado e contado em `dropped`.
+Resposta esperada: `202 Accepted`. Para as demais, a lib:
+
+| Resposta | O que a lib faz |
+| --- | --- |
+| `429` ou `503` com `Retry-After` | Devolve o lote ao buffer e não envia nada até o prazo (no máximo 5 min) |
+| `408`, `429` sem `Retry-After`, 5xx, erro de rede ou timeout | Tenta de novo com backoff (3 tentativas); depois descarta o lote (`failedBatches`, `dropped`) |
+| Outros 4xx (`400`, `401`, `403`, `404`, `413`…) | Não tenta de novo: descarta o lote (`rejectedBatches`, `dropped`) e avisa no log uma vez por status |
 
 ## Envelope do lote
 
@@ -45,7 +51,7 @@ Todos os campos estão sempre presentes; os opcionais vêm como `null`.
 | `eventId` | UUID v7 | Gerado na lib. Chave de idempotência: reenvio não duplica |
 | `ts` | ISO 8601 UTC | Fim da requisição, no relógio do servidor do cliente |
 | `method` | string | Até 16 caracteres |
-| `route` | string | Padrão da rota (`/users/:id`) quando o framework informa. Até 512 |
+| `route` | string | Padrão da rota (`/users/:id`) quando o framework informa. Senão (`node:http`, 404, bloqueio antes do roteamento), um padrão aproximado em que só ficam segmentos com cara de nome; ids, dados e segmentos com encoding ou símbolos viram `:id`, para que payload de ataque e dados pessoais do path nunca saiam no `route`. Até 512 |
 | `status` | inteiro | 100 a 999 |
 | `durationMs` | número | ≥ 0, 3 casas decimais |
 | `ip` | IPv4 ou IPv6 | IP real do cliente (ver `trustProxy`). Sem zona IPv6 e sem prefixo `::ffff:` |

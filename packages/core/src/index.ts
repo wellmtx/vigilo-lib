@@ -34,6 +34,6 @@ export { findCommandInjection, tokenizeShell, type ShellToken, type ShellTokenKi
 export { VigiloBlockedError } from './rasp/wrap.js';
 export { findSqlInjection, tokenizeSql, type SqlDialect, type SqlToken, type SqlTokenKind } from './rasp/sql.js';
 export { IpTracker, type TrackerOptions } from './tracker.js';
-export { EventTransport, type SendFn, type TransportOptions, type TransportStats } from './transport.js';
+export { EventTransport, IngestionError, type SendFn, type TransportOptions, type TransportStats } from './transport.js';
 export { uuidv7 } from './uuid.js';
 export type * from './types.js';

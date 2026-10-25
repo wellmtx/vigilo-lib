@@ -51,6 +51,16 @@ describe('@vigilo/express', () => {
     expect(sent[0]).toMatchObject({ blocked: true, status: 403 });
   });
 
+  it('bloqueado antes do roteamento, não envia o payload do path no route', async () => {
+    const { base, sent, client } = await start('block');
+    const res = await fetch(`${base}/users/${encodeURIComponent('1 UNION SELECT password FROM users')}`, {
+      headers: { 'user-agent': 'sqlmap/1.7' },
+    });
+    expect(res.status).toBe(403);
+    await client.flush();
+    expect(sent[0]).toMatchObject({ route: '/users/:id', blocked: true, threatType: 'sqli' });
+  });
+
   it('inspeciona o corpo JSON', async () => {
     const { base, sent, client } = await start('monitor');
     await fetch(`${base}/login`, {

@@ -73,15 +73,34 @@ function walkKeys(input: unknown, location: string, depth: number, out: InputVal
 const ID_SEGMENT =
   /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[A-Za-z0-9_-]{32,})$/i;
 
+/** Segmento com cara de nome de recurso, versão ou arquivo (`users`, `v1`, `wp-login.php`). */
+const NAME_SEGMENT = /^[A-Za-z0-9._~-]{1,64}$/;
+
+/** Dígitos num segmento longo indicam dado (CPF, telefone, data, token), não nome. */
+const DATA_SEGMENT = /^(?=.*\d).{8,}$/;
+
 /**
  * Converte um path concreto num padrão aproximado (`/users/42` → `/users/:id`).
- * Usado quando o framework não informa o padrão da rota (ex.: `node:http`).
+ * Usado quando o framework não informa o padrão da rota: sempre no `node:http`
+ * e, no Express e no Fastify, em 404 e em requisições bloqueadas antes do
+ * roteamento.
+ *
+ * O `route` vai para a plataforma sem mascaramento, então só ficam segmentos
+ * com cara de nome. Ids, dados e qualquer coisa com encoding, espaço ou
+ * símbolo (payload de ataque, e-mail, CPF, `..`) viram `:id`: o path de
+ * `/users/1%20UNION%20SELECT...` vira `/users/:id`, como o framework diria.
  */
 export function normalizeRoutePath(path: string): string {
   const clean = path.split('?')[0] ?? '/';
-  const segments = clean.split('/').map((segment) => (ID_SEGMENT.test(segment) ? ':id' : segment));
-  const joined = segments.join('/');
+  const joined = clean.split('/').map(routeSegment).join('/');
   return joined === '' ? '/' : joined;
+}
+
+function routeSegment(segment: string): string {
+  if (segment === '') return segment;
+  const isName =
+    NAME_SEGMENT.test(segment) && !ID_SEGMENT.test(segment) && !DATA_SEGMENT.test(segment) && !/^\.\.?$/.test(segment);
+  return isName ? segment : ':id';
 }
 
 export function headerValue(value: string | string[] | undefined): string | undefined {

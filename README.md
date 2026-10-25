@@ -84,8 +84,8 @@ No modo `block`, a chamada não é executada e falha com `VigiloBlockedError` (`
 ### Garantias
 
 - **Fail-open:** qualquer erro interno da lib deixa a requisição seguir.
-- **Assíncrono:** eventos vão em lotes (5 s ou 500 eventos), com gzip, retry e buffer limitado.
-- **LGPD:** `Authorization`, cookies, senhas, tokens, CPF, CNPJ, e-mail e cartão são mascarados antes de sair do processo; o payload só é enviado em eventos suspeitos e limitado a 2 KB.
+- **Assíncrono:** eventos vão em lotes (5 s ou 500 eventos), com gzip e buffer limitado. Falhas temporárias têm nova tentativa; `Retry-After` da plataforma pausa os envios sem perder eventos; lote recusado (ex.: API key inválida) não é reenviado. `client.stats()` mostra `sent`, `dropped`, `failedBatches` e `rejectedBatches`.
+- **LGPD:** `Authorization`, cookies, senhas, tokens, CPF, CNPJ, e-mail e cartão são mascarados antes de sair do processo; o payload só é enviado em eventos suspeitos e limitado a 2 KB. O path concreto nunca é enviado: o evento leva o padrão da rota (`/users/:id`), e quando o framework não o informa, segmentos com dados ou símbolos viram `:id`.
 
 ## O que detecta hoje
 
