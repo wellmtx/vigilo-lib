@@ -2,7 +2,7 @@
 
 Segurança de APIs para Node.js: uma lib que roda dentro da sua aplicação, detecta ataques em tempo real e envia eventos mascarados para um painel com alertas e relatórios.
 
-> Status: em desenvolvimento, ainda não publicado no npm.
+> Status: em desenvolvimento, publicação no npm em preparação.
 
 ## Pacotes
 
@@ -137,6 +137,20 @@ packages/core/schemas/    JSON Schema e exemplo do contrato de eventos (gerados 
 docs/event-contract.md    formato dos eventos enviados para a plataforma
 examples/express-pg/      app vulnerável de exemplo (roda sem banco, com pg-mem)
 ```
+
+## Publicação
+
+Os quatro pacotes têm sempre a mesma versão, igual ao `SDK_VERSION` enviado nos eventos. Para publicar:
+
+```bash
+node scripts/set-version.mjs 0.1.0   # muda a versão dos pacotes e do SDK_VERSION
+pnpm build                           # regenera packages/core/schemas/ com a versão nova
+git commit -am "chore: release 0.1.0"
+git tag v0.1.0
+git push origin main v0.1.0
+```
+
+A tag dispara o workflow [`release.yml`](.github/workflows/release.yml), que roda os testes e publica no npm por trusted publishing, com provenance. Não há token do npm no repositório.
 
 ## Licença
 

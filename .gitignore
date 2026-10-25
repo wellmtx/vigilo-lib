@@ -7,3 +7,6 @@ coverage/
 !.env.example
 .DS_Store
 *.log
+
+# Pacotes gerados pelo workflow de release
+/release/

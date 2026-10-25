@@ -3,6 +3,29 @@
   "version": "0.0.1",
   "description": "Wrapper Vigilo para node:http.",
   "license": "Apache-2.0",
+  "keywords": [
+    "security",
+    "api-security",
+    "rasp",
+    "waf",
+    "sql-injection",
+    "nosql-injection",
+    "xss",
+    "path-traversal",
+    "lgpd",
+    "http",
+    "node-http",
+    "vigilo"
+  ],
+  "homepage": "https://github.com/wellmtx/vigilo-lib/tree/main/packages/http#readme",
+  "bugs": {
+    "url": "https://github.com/wellmtx/vigilo-lib/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wellmtx/vigilo-lib.git",
+    "directory": "packages/http"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,7 +35,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -22,5 +47,8 @@
   },
   "dependencies": {
     "@vigilo/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

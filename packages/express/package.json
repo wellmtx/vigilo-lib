@@ -3,6 +3,29 @@
   "version": "0.0.1",
   "description": "Middleware Vigilo para Express.",
   "license": "Apache-2.0",
+  "keywords": [
+    "security",
+    "api-security",
+    "rasp",
+    "waf",
+    "sql-injection",
+    "nosql-injection",
+    "xss",
+    "path-traversal",
+    "lgpd",
+    "express",
+    "middleware",
+    "vigilo"
+  ],
+  "homepage": "https://github.com/wellmtx/vigilo-lib/tree/main/packages/express#readme",
+  "bugs": {
+    "url": "https://github.com/wellmtx/vigilo-lib/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wellmtx/vigilo-lib.git",
+    "directory": "packages/express"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,5 +54,8 @@
   },
   "peerDependencies": {
     "express": ">=4.19"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

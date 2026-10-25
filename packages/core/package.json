@@ -3,6 +3,29 @@
   "version": "0.0.1",
   "description": "Vigilo core: detecção de ataques, mascaramento e envio de eventos.",
   "license": "Apache-2.0",
+  "keywords": [
+    "security",
+    "api-security",
+    "rasp",
+    "waf",
+    "sql-injection",
+    "nosql-injection",
+    "xss",
+    "path-traversal",
+    "lgpd",
+    "detection",
+    "masking",
+    "vigilo"
+  ],
+  "homepage": "https://github.com/wellmtx/vigilo-lib/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/wellmtx/vigilo-lib/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wellmtx/vigilo-lib.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,5 +51,8 @@
     "mongodb": "^6.21.0",
     "mysql2": "^3.24.6",
     "pg": "^8.23.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
