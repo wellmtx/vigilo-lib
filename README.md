@@ -2,7 +2,11 @@
 
 Segurança de APIs para Node.js: uma lib que roda dentro da sua aplicação, detecta ataques em tempo real e envia eventos mascarados para um painel com alertas e relatórios.
 
-> Status: em desenvolvimento, publicação no npm em preparação.
+> Status: beta. Os pacotes estão no npm; a API pode mudar até a versão 1.0.
+
+```bash
+npm install @vigilo/express   # ou @vigilo/fastify, @vigilo/http
+```
 
 ## Pacotes
 
