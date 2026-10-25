@@ -60,6 +60,7 @@ jobs:
               echo "$name@$version já está no npm, pulando"
               continue
             fi
-            tarball="$(ls release/vigilo-$pkg-*.tgz)"
+            # O ./ é obrigatório: sem ele o npm lê "release/x.tgz" como repositório do GitHub.
+            tarball="$(ls ./release/vigilo-$pkg-*.tgz)"
             npm publish "$tarball" --access public --provenance
           done
