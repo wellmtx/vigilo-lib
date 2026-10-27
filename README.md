@@ -157,6 +157,16 @@ git push origin main v0.1.0
 
 A tag dispara o workflow [`release.yml`](.github/workflows/release.yml), que roda os testes e publica no npm por trusted publishing, com provenance. Não há token do npm no repositório.
 
+> **Hoje a publicação pelo workflow falha** com `403 OIDC permission denied`: o npm ainda não aceita o formato de identidade que o GitHub usa para repositórios criados depois de 15/07/2026 ([npm/cli#9969](https://github.com/npm/cli/issues/9969), aberto). Até a correção, publique à mão a partir da tag, com o 2FA da conta:
+>
+> ```bash
+> git checkout v0.1.0 && pnpm install --frozen-lockfile && pnpm build && pnpm test
+> mkdir -p release && for p in core express fastify http; do (cd packages/$p && pnpm pack --pack-destination ../../release); done
+> for p in core express fastify http; do npm publish ./release/vigilo-$p-0.1.0.tgz --access public; done
+> ```
+>
+> Sem o workflow, a versão sai sem provenance. Quando o npm corrigir o bug, o workflow volta a funcionar sem mudança.
+
 ## Licença
 
 Apache 2.0.
