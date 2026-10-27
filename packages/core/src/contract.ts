@@ -11,7 +11,7 @@ export const EVENT_SCHEMA_VERSION = 1;
 
 export const SDK_NAME = '@vigilo/core';
 /** Mantenha igual ao `version` do package.json. */
-export const SDK_VERSION = '0.0.1';
+export const SDK_VERSION = '0.1.0';
 
 /** Limites do contrato. A lib corta os valores antes de enviar; a ingestão rejeita o que passar disso. */
 export const LIMITS = {

@@ -1,6 +1,6 @@
 {
   "name": "@vigilo/express",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Middleware Vigilo para Express.",
   "license": "Apache-2.0",
   "keywords": [

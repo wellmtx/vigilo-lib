@@ -1,6 +1,6 @@
 {
   "name": "@vigilo/core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Vigilo core: detecção de ataques, mascaramento e envio de eventos.",
   "license": "Apache-2.0",
   "keywords": [

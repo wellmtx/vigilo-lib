@@ -1,6 +1,6 @@
 {
   "name": "@vigilo/http",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Wrapper Vigilo para node:http.",
   "license": "Apache-2.0",
   "keywords": [

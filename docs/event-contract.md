@@ -80,7 +80,7 @@ Uma ameaça `rasp` confirma que a entrada alterou a estrutura da query ou do com
 ```json
 {
   "schemaVersion": 1,
-  "sdk": { "name": "@vigilo/core", "version": "0.0.1" },
+  "sdk": { "name": "@vigilo/core", "version": "0.1.0" },
   "sentAt": "2026-10-21T16:40:05.120Z",
   "events": [
     {
