@@ -3,6 +3,7 @@ import { detect, highestSeverity } from './detectors/index.js';
 import type { InputSources, RequestContext } from './rasp/context.js';
 import { buildPayload, type MaskingOptions } from './masking.js';
 import { IpTracker, type TrackerOptions } from './tracker.js';
+import { RemoteConfig } from './remote-config.js';
 import { EventTransport, type SendFn, type TransportStats } from './transport.js';
 import type { TrustProxy } from './ip.js';
 import type { Decision, Logger, Mode, NormalizedRequest, ResponseOutcome, Severity, VigiloEvent } from './types.js';
@@ -13,8 +14,16 @@ export const DEFAULT_ENDPOINT = 'https://ingest.vigilosec.com';
 export interface VigiloOptions {
   /** Chave do projeto, criada no painel. Sem ela, nada é enviado (útil em desenvolvimento). */
   apiKey?: string | undefined;
-  /** `monitor` (padrão) só registra; `block` responde 403 às requisições suspeitas. */
+  /**
+   * `monitor` só registra; `block` responde 403 às requisições suspeitas. Sem este
+   * campo, o modo vem do painel (consultado ao iniciar e a cada minuto), começando
+   * em `monitor`. Definido aqui, ele prevalece e o painel não é consultado.
+   */
   mode?: Mode;
+  /** Consultar o modo no painel quando `mode` não é definido. Padrão: `true`. */
+  remoteConfig?: boolean;
+  /** Intervalo entre consultas ao painel. Padrão: 60 s. */
+  configIntervalMs?: number;
   /** Severidade mínima para bloquear no modo `block`. Padrão: 4. */
   blockSeverity?: Severity;
   /** URL da API de ingestão. Padrão: `VIGILO_ENDPOINT` ou o endpoint da plataforma. */
@@ -37,6 +46,7 @@ export interface VigiloOptions {
 }
 
 export interface VigiloClient {
+  /** Modo atual (pode mudar quando vem do painel). */
   readonly mode: Mode;
   readonly trustProxy: TrustProxy;
   /** Camada 1 e flags da camada 2. Nunca lança exceção (fail-open). */
@@ -57,14 +67,15 @@ export interface VigiloClient {
 const NO_THREATS: Decision = Object.freeze({ threats: [], block: false }) as Decision;
 
 export function createVigilo(options: VigiloOptions = {}): VigiloClient {
-  const mode: Mode = options.mode ?? 'monitor';
+  let mode: Mode = options.mode ?? 'monitor';
   const blockSeverity = options.blockSeverity ?? 4;
   const sampleRate = clamp(options.sampleRate ?? 1);
   const logger = options.logger;
   const tracker = new IpTracker(options.tracker);
+  const endpoint = options.endpoint ?? process.env.VIGILO_ENDPOINT ?? DEFAULT_ENDPOINT;
   const transport = new EventTransport({
     apiKey: options.apiKey,
-    endpoint: options.endpoint ?? process.env.VIGILO_ENDPOINT ?? DEFAULT_ENDPOINT,
+    endpoint,
     batchSize: options.batchSize,
     flushIntervalMs: options.flushIntervalMs,
     maxBufferSize: options.maxBufferSize,
@@ -76,12 +87,30 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
     logger?.warn('vigilo: apiKey ausente; eventos não serão enviados');
   }
 
+  // O modo vem do painel, salvo quando o código o define.
+  const remote =
+    options.mode === undefined && options.apiKey && !options.send && options.remoteConfig !== false
+      ? new RemoteConfig({
+          endpoint,
+          apiKey: options.apiKey,
+          intervalMs: options.configIntervalMs,
+          logger,
+          onMode: (next) => {
+            if (next !== mode) logger?.warn('vigilo: modo alterado pelo painel', { from: mode, to: next });
+            mode = next;
+          },
+        })
+      : undefined;
+  remote?.start();
+
   const ignore = options.ignoreRoutes ?? [];
   const isIgnored = (route: string) =>
     ignore.some((rule) => (typeof rule === 'string' ? rule === route : rule.test(route)));
 
   return {
-    mode,
+    get mode() {
+      return mode;
+    },
     trustProxy: options.trustProxy ?? false,
     isIgnored,
 
@@ -128,7 +157,9 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
           severity: top?.severity ?? null,
           threats,
           blocked: outcome.decision.block || outcome.context?.blocked === true,
-          payload: suspicious ? buildPayload({ query: req.query, body: req.body }, options.masking) : null,
+          payload: suspicious
+            ? buildPayload({ path: req.path, query: req.query, params: routeParams(outcome), body: req.body }, options.masking)
+            : null,
         };
         transport.push(event);
       } catch (error) {
@@ -137,9 +168,21 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
     },
 
     flush: () => transport.flush(),
-    close: () => transport.close(),
+    close: () => {
+      remote?.stop();
+      return transport.close();
+    },
     stats: () => transport.getStats(),
   };
+}
+
+/** Parâmetros de rota (`/users/:id`), lidos pelo contexto da requisição depois do roteamento. */
+function routeParams(outcome: ResponseOutcome): unknown {
+  try {
+    return outcome.context?.sources().params;
+  } catch {
+    return undefined;
+  }
 }
 
 function clamp(value: number): number {

@@ -47,13 +47,14 @@ export function shield(options: ShieldOptions = {}): ShieldMiddleware {
       normalized = toNormalized(req, client);
       decision = client.inspect(normalized);
       // Lido no momento da query: `req.params` só é preenchido quando a rota casa.
-      context = client.createContext(() => ({
-        query: req.query,
-        body: req.body,
-        params: req.params,
-        path: req.path,
-        headers: req.headers,
-      }));
+      // Fora da rota (ex.: no tratador de erro, depois de a RASP bloquear a query)
+      // o Express troca `req.params` pelo da camada atual, vazio; por isso os
+      // últimos params vistos ficam guardados para o payload do evento.
+      let seenParams: Request['params'] | undefined;
+      context = client.createContext(() => {
+        if (req.params && Object.keys(req.params).length > 0) seenParams = req.params;
+        return { query: req.query, body: req.body, params: seenParams, path: req.path, headers: req.headers };
+      });
     } catch {
       next();
       return;

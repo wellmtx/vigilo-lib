@@ -1,3 +1,4 @@
+import { decodeValue } from './normalize.js';
 import type { HeaderValue } from './types.js';
 
 export const REDACTED = '[REDACTED]';
@@ -59,17 +60,26 @@ export function maskObject(input: unknown, options: MaskingOptions = {}, depth =
 
 /** Serializa o payload mascarado e corta no limite de bytes (2 KB por padrão). */
 export function buildPayload(
-  parts: { query?: unknown; body?: unknown },
+  parts: { path?: string; query?: unknown; params?: unknown; body?: unknown },
   options: MaskingOptions = {},
   limit: number = DEFAULT_PAYLOAD_LIMIT,
 ): string {
+  // O path concreto entra decodificado e mascarado: num ataque pela rota
+  // (`/users/1 OR 1=1`), é nele que está a evidência; e-mail, CPF ou cartão
+  // no path viram máscara como em qualquer outro valor.
   const json = JSON.stringify({
+    path: parts.path === undefined ? undefined : maskString(decodeValue(parts.path)),
     query: maskObject(parts.query ?? {}, options),
+    params: isEmpty(parts.params) ? undefined : maskObject(parts.params, options),
     body: parts.body === undefined ? undefined : maskObject(parts.body, options),
   });
   const buffer = Buffer.from(json, 'utf8');
   if (buffer.byteLength <= limit) return json;
   return `${buffer.subarray(0, limit).toString('utf8')}…[truncated]`;
+}
+
+function isEmpty(value: unknown): boolean {
+  return value == null || (typeof value === 'object' && Object.keys(value).length === 0);
 }
 
 function isSensitiveKey(key: string, options: MaskingOptions): boolean {

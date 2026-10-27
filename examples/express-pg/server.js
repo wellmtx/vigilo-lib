@@ -7,7 +7,13 @@ import express from 'express';
 import pg from 'pg';
 import { instrumentFs, instrumentPg, shield } from '@vigilo/express';
 
-const mode = process.env.VIGILO_MODE === 'monitor' ? 'monitor' : 'block';
+// VIGILO_MODE fixa o modo no código. Sem ele, com VIGILO_KEY o modo vem do
+// painel; sem chave (só imprimindo os eventos), o exemplo bloqueia.
+const mode = ['monitor', 'block'].includes(process.env.VIGILO_MODE ?? '')
+  ? process.env.VIGILO_MODE
+  : process.env.VIGILO_KEY
+    ? undefined
+    : 'block';
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 
 // Sem VIGILO_KEY, os eventos aparecem no terminal em vez de irem para a plataforma.
@@ -80,7 +86,7 @@ app.use((error, _req, res, _next) => {
 
 const port = Number(process.env.PORT ?? 3000);
 const server = app.listen(port, '127.0.0.1', () => {
-  console.log(`Exemplo em http://127.0.0.1:${port} (modo ${mode}). Veja o README para os ataques de teste.`);
+  console.log(`Exemplo em http://127.0.0.1:${port} (modo ${mode ?? 'do painel'}). Veja o README para os ataques de teste.`);
 });
 
 process.on('SIGINT', async () => {

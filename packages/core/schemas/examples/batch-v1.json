@@ -51,7 +51,7 @@
         }
       ],
       "blocked": false,
-      "payload": "{\"query\":{\"id\":\"1 UNION SELECT password FROM users\"}}"
+      "payload": "{\"path\":\"/users/42\",\"query\":{\"id\":\"1 UNION SELECT password FROM users\"}}"
     },
     {
       "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e02",
@@ -75,7 +75,7 @@
         }
       ],
       "blocked": false,
-      "payload": "{\"query\":{},\"body\":{\"email\":\"[EMAIL]\",\"password\":\"[REDACTED]\"}}"
+      "payload": "{\"path\":\"/login\",\"query\":{},\"body\":{\"email\":\"[EMAIL]\",\"password\":\"[REDACTED]\"}}"
     },
     {
       "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e03",
@@ -115,7 +115,7 @@
         }
       ],
       "blocked": false,
-      "payload": "{\"query\":{}}"
+      "payload": "{\"path\":\"/products\",\"query\":{}}"
     }
   ]
 }

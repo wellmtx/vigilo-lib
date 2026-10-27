@@ -37,3 +37,23 @@ describe('masking', () => {
     expect(payload.endsWith('[truncated]')).toBe(true);
   });
 });
+
+describe('buildPayload com path e params', () => {
+  it('inclui o path decodificado e os params, mascarados', () => {
+    const payload = JSON.parse(
+      buildPayload({
+        path: '/contatos/joao%40empresa.com.br/1%20OR%201%3D1',
+        query: { q: 'x' },
+        params: { email: 'joao@empresa.com.br', id: '1 OR 1=1' },
+      }),
+    );
+    expect(payload.path).toBe('/contatos/[EMAIL]/1 OR 1=1');
+    expect(payload.params).toEqual({ email: '[EMAIL]', id: '1 OR 1=1' });
+    expect(payload.query).toEqual({ q: 'x' });
+  });
+
+  it('omite params vazios e path ausente', () => {
+    const payload = JSON.parse(buildPayload({ query: {}, params: {} }));
+    expect(payload).toEqual({ query: {} });
+  });
+});

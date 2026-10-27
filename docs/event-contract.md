@@ -61,7 +61,7 @@ Todos os campos estão sempre presentes; os opcionais vêm como `null`.
 | `severity` | 1 a 5 ou `null` | Severidade da ameaça mais grave |
 | `threats` | array | Até 32, mais graves primeiro quando corta. Vazio em evento limpo |
 | `blocked` | boolean | A lib respondeu 403 (modo `block`) |
-| `payload` | string ou `null` | Só em evento suspeito: JSON `{query, body}` mascarado, até 2 KB e sufixo `…[truncated]` |
+| `payload` | string ou `null` | Só em evento suspeito: JSON `{path, query, params, body}` mascarado, até 2 KB e sufixo `…[truncated]`. `path` é o caminho concreto decodificado (é nele que fica um ataque pela rota); `params`, os parâmetros da rota (`/users/:id`), só quando o framework informa |
 
 ### Ameaça (`threats[]`)
 
@@ -105,6 +105,17 @@ Uma ameaça `rasp` confirma que a entrada alterou a estrutura da query ou do com
   ]
 }
 ```
+
+## Configuração remota
+
+Quando o código não define `mode`, a lib consulta o modo do projeto definido no painel ao iniciar e a cada 60 s:
+
+```
+GET /v1/config
+Authorization: Bearer <api key do projeto>
+```
+
+Resposta `200 {"mode": "monitor" | "block"}`. Qualquer outra resposta (ou falha de rede) mantém o último modo conhecido, que no início é `monitor`. Valor desconhecido de `mode` é ignorado. Com o cache da ingestão, uma mudança no painel chega à lib em até ~2 minutos.
 
 ## Regras de evolução
 

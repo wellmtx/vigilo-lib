@@ -78,7 +78,8 @@ No modo `block`, a chamada não é executada e falha com `VigiloBlockedError` (`
 | Opção | Padrão | Descrição |
 | --- | --- | --- |
 | `apiKey` | — | Chave do projeto. Sem ela, nada é enviado |
-| `mode` | `'monitor'` | `monitor` só registra; `block` responde 403 |
+| `mode` | do painel | `monitor` só registra; `block` responde 403. Sem este campo, vale o modo do projeto no painel (consultado ao iniciar e a cada minuto, começando em `monitor`); definido no código, ele prevalece |
+| `remoteConfig` | `true` | `false` desliga a consulta do modo ao painel |
 | `blockSeverity` | `4` | Severidade mínima (1 a 5) para bloquear |
 | `trustProxy` | `false` | `true` confia em proxies em rede privada; ou uma lista de IPs |
 | `ignoreRoutes` | `[]` | Rotas ignoradas (ex.: `'/health'`) |
