@@ -8,6 +8,8 @@ export interface TransportOptions {
   apiKey?: string | undefined;
   /** URL base da API de ingestão. */
   endpoint: string;
+  /** Vai no envelope de cada lote (`release`). */
+  release?: string | null | undefined;
   /** Envia quando o lote atinge este tamanho. Padrão e máximo: 500. */
   batchSize?: number;
   /** Envia a cada intervalo, mesmo com lote incompleto. Padrão: 5 s. */
@@ -176,7 +178,7 @@ export class EventTransport {
 
   private async httpSend(events: VigiloEvent[]): Promise<void> {
     if (!this.options.apiKey) return;
-    const body = gzipSync(Buffer.from(JSON.stringify(buildBatch(events)), 'utf8'));
+    const body = gzipSync(Buffer.from(JSON.stringify(buildBatch(events, new Date(), this.options.release ?? null)), 'utf8'));
     const response = await fetch(new URL('/v1/events', this.options.endpoint), {
       method: 'POST',
       headers: {

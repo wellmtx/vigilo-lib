@@ -1,6 +1,7 @@
 import mysql from 'mysql2';
 import mysqlPromise from 'mysql2/promise';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { callsiteAt } from './fixtures.js';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
 import { instrumentMysql2 } from '../src/rasp/mysql2.js';
@@ -41,7 +42,7 @@ describe('instrumentMysql2', () => {
     await new Promise((resolve) => runWithContext(ctx, () => connection().query(sqlFor(attack.query.name), resolve)));
     expect(calls).toHaveLength(1);
     expect(ctx.threats).toEqual([
-      { type: 'sqli', severity: 5, location: 'query.name', rule: 'rasp.sqli.mysql2', layer: 'rasp' },
+      { type: 'sqli', severity: 5, location: 'query.name', rule: 'rasp.sqli.mysql2', layer: 'rasp', callsite: callsiteAt('rasp-mysql2.test.ts', 42) },
     ]);
   });
 

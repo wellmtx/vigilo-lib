@@ -7,6 +7,7 @@
     "schemaVersion",
     "sdk",
     "sentAt",
+    "release",
     "events"
   ],
   "properties": {
@@ -36,6 +37,19 @@
     "sentAt": {
       "type": "string",
       "format": "date-time"
+    },
+    "release": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+\\/-]*$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "events": {
       "type": "array",
@@ -203,6 +217,50 @@
                     "rasp",
                     "ip"
                   ]
+                },
+                "callsite": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "file",
+                    "line",
+                    "column",
+                    "function"
+                  ],
+                  "properties": {
+                    "file": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "line": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "column": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "function": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
                 }
               }
             }

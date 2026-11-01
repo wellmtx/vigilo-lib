@@ -22,6 +22,9 @@ export const LIMITS = {
   threats: 32,
   location: 256,
   rule: 64,
+  callsiteFile: 256,
+  callsiteFunction: 128,
+  release: 64,
   /** Bytes do payload mais o sufixo `…[truncated]`. */
   payload: DEFAULT_PAYLOAD_LIMIT + 16,
 } as const;
@@ -40,20 +43,26 @@ export const THREAT_TYPES: readonly ThreatType[] = [
 
 export const THREAT_LAYERS: readonly ThreatLayer[] = ['signature', 'rasp', 'ip'];
 
+/** Formato aceito para `release` (SHA do commit, tag ou versão). */
+export const RELEASE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+\/-]*$/;
+
 /** Corpo do `POST /v1/events`, antes do gzip. */
 export interface EventBatch {
   schemaVersion: typeof EVENT_SCHEMA_VERSION;
   sdk: { name: string; version: string };
   /** Horário do envio, para a plataforma estimar o desvio de relógio da instância. */
   sentAt: string;
+  /** Versão do código da aplicação (ex.: SHA do commit), para achar o `callsite` no repositório. */
+  release: string | null;
   events: VigiloEvent[];
 }
 
-export function buildBatch(events: VigiloEvent[], now: Date = new Date()): EventBatch {
+export function buildBatch(events: VigiloEvent[], now: Date = new Date(), release: string | null = null): EventBatch {
   return {
     schemaVersion: EVENT_SCHEMA_VERSION,
     sdk: { name: SDK_NAME, version: SDK_VERSION },
     sentAt: now.toISOString(),
+    release,
     events,
   };
 }
@@ -85,6 +94,17 @@ const THREAT_SCHEMA = {
     location: { type: 'string', minLength: 1, maxLength: LIMITS.location },
     rule: { type: 'string', minLength: 1, maxLength: LIMITS.rule },
     layer: { enum: THREAT_LAYERS },
+    callsite: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['file', 'line', 'column', 'function'],
+      properties: {
+        file: { type: 'string', minLength: 1, maxLength: LIMITS.callsiteFile },
+        line: { type: 'integer', minimum: 1 },
+        column: nullable({ type: 'integer', minimum: 1 }),
+        function: nullable({ type: 'string', minLength: 1, maxLength: LIMITS.callsiteFunction }),
+      },
+    },
   },
 } as const;
 
@@ -137,7 +157,7 @@ export const EVENT_BATCH_SCHEMA = {
   $id: 'https://vigilosec.com/schemas/event-batch/v1.json',
   type: 'object',
   additionalProperties: false,
-  required: ['schemaVersion', 'sdk', 'sentAt', 'events'],
+  required: ['schemaVersion', 'sdk', 'sentAt', 'release', 'events'],
   properties: {
     schemaVersion: { const: EVENT_SCHEMA_VERSION },
     sdk: {
@@ -150,6 +170,7 @@ export const EVENT_BATCH_SCHEMA = {
       },
     },
     sentAt: { type: 'string', format: 'date-time' },
+    release: nullable({ type: 'string', minLength: 1, maxLength: LIMITS.release, pattern: RELEASE_PATTERN.source }),
     events: { type: 'array', minItems: 1, maxItems: LIMITS.batchSize, items: EVENT_SCHEMA },
   },
 } as const;

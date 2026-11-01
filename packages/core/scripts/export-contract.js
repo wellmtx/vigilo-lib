@@ -54,6 +54,29 @@ const client = createVigilo({
 for (const { req, status } of requests) {
   client.record(req, { status, durationMs: 3.4125, decision: client.inspect(req) });
 }
+// Injeção confirmada pela RASP no driver, com o ponto do código que montou a query.
+const rasp = { ...base, ip: '203.0.113.99', path: '/users/1 OR 1=1' };
+client.record(rasp, {
+  status: 500,
+  durationMs: 3.4125,
+  decision: client.inspect(rasp),
+  context: {
+    mode: 'monitor',
+    blockSeverity: 4,
+    sources: () => ({ params: { id: '1 OR 1=1' } }),
+    blocked: false,
+    threats: [
+      {
+        type: 'sqli',
+        severity: 5,
+        location: 'params.id',
+        rule: 'rasp.sqli.pg',
+        layer: 'rasp',
+        callsite: { file: 'src/routes/users.ts', line: 18, column: 27, function: 'getUser' },
+      },
+    ],
+  },
+});
 await client.flush();
 
 const fixed = events.map((event, i) => ({
@@ -61,7 +84,7 @@ const fixed = events.map((event, i) => ({
   eventId: `019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e0${i}`,
   ts: `2026-10-21T16:40:0${i}.000Z`,
 }));
-const batch = buildBatch(fixed, new Date('2026-10-21T16:40:05.000Z'));
+const batch = buildBatch(fixed, new Date('2026-10-21T16:40:05.000Z'), '3f2c9a1e8b7d6c5f4a3b2c1d0e9f8a7b6c5d4e3f');
 
 const write = (file, data) => {
   mkdirSync(dirname(join(root, file)), { recursive: true });

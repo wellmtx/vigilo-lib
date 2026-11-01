@@ -1,5 +1,6 @@
 import * as mongodb from 'mongodb';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { callsiteAt } from './fixtures.js';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
 import { instrumentMongodb } from '../src/rasp/mongodb.js';
@@ -81,7 +82,7 @@ describe('instrumentMongodb', () => {
     await runWithContext(ctx, () => users().findOne({ email: attack.body.email, password: attack.body.password }));
     expect(executed).toEqual(['findOne']);
     expect(ctx.threats).toEqual([
-      { type: 'nosqli', severity: 5, location: 'body.password', rule: 'rasp.nosqli.mongodb', layer: 'rasp' },
+      { type: 'nosqli', severity: 5, location: 'body.password', rule: 'rasp.nosqli.mongodb', layer: 'rasp', callsite: callsiteAt('rasp-mongodb.test.ts', 82) },
     ]);
   });
 

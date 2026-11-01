@@ -71,6 +71,8 @@ instrumentFs();
 
 Queries parametrizadas (`$1`, `?`), filtros com operadores escritos pelo desenvolvedor e `spawn`/`execFile` sem shell nunca disparam. Chamadas fora de uma requisição (jobs, migrations) não são verificadas.
 
+A ameaça também leva o `callsite`: o arquivo, a linha e a função da sua aplicação que chamou o driver (o primeiro frame fora de `node_modules`), com o caminho relativo ao diretório de trabalho do processo. É ele que mostra no painel onde está a falha. Para apontar o código-fonte em TypeScript ou num bundle, rode o Node com `--enable-source-maps`; sem isso, a linha é a do JavaScript gerado. Defina `release` (ou `VIGILO_RELEASE`) com o SHA do commit em produção para a plataforma achar a versão exata do arquivo no repositório.
+
 No modo `block`, a chamada não é executada e falha com `VigiloBlockedError` (`code: 'VIGILO_BLOCKED'`) pelo canal de erro normal dela: callback, promise rejeitada ou exceção (funções síncronas, `find`/`aggregate` do MongoDB, streams do `fs` e `child_process`). O tratamento de erro da sua aplicação decide a resposta; veja o [exemplo](examples/express-pg). Cursores do `pg` e a API de eventos do `mysql2` (sem callback) só são registrados, nunca bloqueados.
 
 ### Opções principais
@@ -80,6 +82,7 @@ No modo `block`, a chamada não é executada e falha com `VigiloBlockedError` (`
 | `apiKey` | — | Chave do projeto. Sem ela, nada é enviado |
 | `mode` | do painel | `monitor` só registra; `block` responde 403. Sem este campo, vale o modo do projeto no painel (consultado ao iniciar e a cada minuto, começando em `monitor`); definido no código, ele prevalece |
 | `remoteConfig` | `true` | `false` desliga a consulta do modo ao painel |
+| `release` | `VIGILO_RELEASE` | Versão do código em execução, de preferência o SHA do commit (até 64 caracteres: letras, números e `. _ + / -`) |
 | `blockSeverity` | `4` | Severidade mínima (1 a 5) para bloquear |
 | `trustProxy` | `false` | `true` confia em proxies em rede privada; ou uma lista de IPs |
 | `ignoreRoutes` | `[]` | Rotas ignoradas (ex.: `'/health'`) |

@@ -5,6 +5,7 @@ export {
   EVENT_SCHEMA,
   EVENT_SCHEMA_VERSION,
   LIMITS,
+  RELEASE_PATTERN,
   SDK_NAME,
   SDK_VERSION,
   THREAT_LAYERS,
@@ -22,6 +23,7 @@ export {
   type InputSources,
   type RequestContext,
 } from './rasp/context.js';
+export { captureCallsite, pickCallsite } from './rasp/callsite.js';
 export { collectRaspInputs } from './rasp/inputs.js';
 export { instrumentChildProcess } from './rasp/child-process.js';
 export { instrumentFs } from './rasp/fs.js';

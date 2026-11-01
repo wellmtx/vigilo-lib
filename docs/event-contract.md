@@ -40,6 +40,7 @@ Resposta esperada: `202 Accepted`. Para as demais, a lib:
 | `sdk.name` | string | `@vigilo/core` (até 64) |
 | `sdk.version` | string | Versão da lib (até 32). Ajuda a rastrear falso positivo por versão |
 | `sentAt` | ISO 8601 UTC | Horário do envio. Comparado com o horário de chegada, estima o desvio de relógio da instância |
+| `release` | string ou `null` | Desde a 0.2.0. Versão do código da aplicação (opção `release` ou `VIGILO_RELEASE`), de preferência o SHA do commit: com ela, a plataforma acha o `callsite` no repositório. Até 64, no formato `^[A-Za-z0-9][A-Za-z0-9._+/-]*$`. Libs anteriores não mandam o campo |
 | `events` | array | De 1 a 500 eventos |
 
 ## Evento
@@ -72,8 +73,11 @@ Todos os campos estão sempre presentes; os opcionais vêm como `null`.
 | `location` | string | Onde o sinal apareceu: `query.id`, `body.user.name`, `path`, `header.user-agent`, `ip`. Até 256 |
 | `rule` | string | Regra que disparou, ex.: `sqli.union-select`. Até 64 |
 | `layer` | enum | `signature` (camada 1), `rasp` (camada 1b, nos drivers), `ip` (camada 2) |
+| `callsite` | objeto, opcional | Desde a 0.2.0, só em ameaças `rasp`, e ausente quando a lib não acha o ponto na pilha. O código da aplicação que chamou o driver: `file` (caminho relativo ao diretório de trabalho do processo, com `/`, até 256), `line` (≥ 1), `column` (≥ 1 ou `null`) e `function` (até 128 ou `null`) |
 
 Uma ameaça `rasp` confirma que a entrada alterou a estrutura da query ou do comando, então a plataforma pode tratá-la com mais confiança do que uma assinatura. A RASP emite severidade 5 com regras no padrão `rasp.<tipo>.<driver>`: `rasp.sqli.pg`, `rasp.sqli.mysql2`, `rasp.nosqli.mongodb`, `rasp.traversal.fs` e `rasp.cmdi.child_process`. O `location` aponta a entrada que causou a injeção (ex.: `params.id`, `body.password`). Quando a RASP bloqueia, `blocked` fica `true` e `status` é o que a aplicação respondeu depois do erro (em geral 500).
+
+O `callsite` é o primeiro frame da pilha da chamada ao driver que não está em `node_modules`, nos módulos internos do Node nem fora do diretório de trabalho: caminhos absolutos da máquina nunca saem do processo. Com `--enable-source-maps`, ele aponta o arquivo original (`.ts`); sem isso, o JavaScript que rodou. A função e o arquivo vêm do código, nunca da requisição, então não são mascarados.
 
 ### Exemplo
 

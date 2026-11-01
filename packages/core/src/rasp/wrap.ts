@@ -1,5 +1,6 @@
 import { promisify } from 'node:util';
 import type { Threat } from '../types.js';
+import { captureCallsite } from './callsite.js';
 import { currentContext, reportThreat, type RequestContext } from './context.js';
 
 /** Erro devolvido ao código da aplicação quando a RASP bloqueia uma chamada no modo `block`. */
@@ -64,7 +65,7 @@ export function wrapMethod(target: object, name: string, spec: WrapSpec): boolea
 
 function wrapFunction(original: AnyFn, spec: WrapSpec): AnyFn {
   const wrapped: AnyFn = function vigiloWrapped(this: unknown, ...args: unknown[]) {
-    const blocked = check(spec, args);
+    const blocked = check(spec, args, wrapped);
     if (blocked) {
       const { error, delivery } = blocked;
       if (delivery.via === 'callback') {
@@ -92,12 +93,17 @@ function wrapFunction(original: AnyFn, spec: WrapSpec): AnyFn {
 }
 
 /** Devolve o erro e o canal quando a chamada deve ser bloqueada. Nunca lança (fail-open). */
-function check(spec: WrapSpec, args: unknown[]): { error: VigiloBlockedError; delivery: Delivery } | undefined {
+function check(
+  spec: WrapSpec,
+  args: unknown[],
+  wrapped: AnyFn,
+): { error: VigiloBlockedError; delivery: Delivery } | undefined {
   const context = currentContext();
   if (!context) return undefined;
   try {
-    const threat = spec.detect(args, context);
-    if (!threat) return undefined;
+    const detected = spec.detect(args, context);
+    if (!detected) return undefined;
+    const threat = withCallsite(detected, wrapped, context);
     reportThreat(context, threat);
     if (context.mode !== 'block' || threat.severity < context.blockSeverity) return undefined;
     const delivery = spec.delivery(args);
@@ -107,6 +113,17 @@ function check(spec: WrapSpec, args: unknown[]): { error: VigiloBlockedError; de
   } catch (error) {
     context.logger?.warn(`vigilo: erro interno na RASP do ${spec.driver} (fail-open)`, String(error));
     return undefined;
+  }
+}
+
+/** Acrescenta o ponto do código que chamou o driver. Uma falha aqui não perde a ameaça. */
+function withCallsite(threat: Threat, wrapped: AnyFn, context: RequestContext): Threat {
+  try {
+    const callsite = captureCallsite(wrapped);
+    return callsite ? { ...threat, callsite } : threat;
+  } catch (error) {
+    context.logger?.warn('vigilo: erro ao ler a pilha da chamada (fail-open)', String(error));
+    return threat;
   }
 }
 

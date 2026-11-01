@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { callsiteAt } from './fixtures.js';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
 import { instrumentFs } from '../src/rasp/fs.js';
@@ -59,7 +60,7 @@ describe('instrumentFs', () => {
     const data = await runWithContext(ctx, () => fs.promises.readFile(target(), 'utf8'));
     expect(data).toBe('segredo');
     expect(ctx.threats).toEqual([
-      { type: 'traversal', severity: 5, location: 'query.file', rule: 'rasp.traversal.fs', layer: 'rasp' },
+      { type: 'traversal', severity: 5, location: 'query.file', rule: 'rasp.traversal.fs', layer: 'rasp', callsite: callsiteAt('rasp-fs.test.ts', 60) },
     ]);
   });
 

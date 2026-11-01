@@ -5,6 +5,7 @@
     "version": "0.1.1"
   },
   "sentAt": "2026-10-21T16:40:05.000Z",
+  "release": "3f2c9a1e8b7d6c5f4a3b2c1d0e9f8a7b6c5d4e3f",
   "events": [
     {
       "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e00",
@@ -116,6 +117,50 @@
       ],
       "blocked": false,
       "payload": "{\"path\":\"/products\",\"query\":{}}"
+    },
+    {
+      "eventId": "019a07c1-3b2e-7c4d-9a1f-5e6b7c8d9e05",
+      "ts": "2026-10-21T16:40:05.000Z",
+      "method": "GET",
+      "route": "/users/:id",
+      "status": 500,
+      "durationMs": 3.413,
+      "ip": "203.0.113.99",
+      "srcPort": 51234,
+      "userAgent": "Mozilla/5.0",
+      "threatType": "sqli",
+      "severity": 5,
+      "threats": [
+        {
+          "type": "sqli",
+          "severity": 3,
+          "location": "path",
+          "rule": "sqli.numeric-tautology",
+          "layer": "signature"
+        },
+        {
+          "type": "sqli",
+          "severity": 3,
+          "location": "path",
+          "rule": "sqli.comparison-tautology",
+          "layer": "signature"
+        },
+        {
+          "type": "sqli",
+          "severity": 5,
+          "location": "params.id",
+          "rule": "rasp.sqli.pg",
+          "layer": "rasp",
+          "callsite": {
+            "file": "src/routes/users.ts",
+            "line": 18,
+            "column": 27,
+            "function": "getUser"
+          }
+        }
+      ],
+      "blocked": false,
+      "payload": "{\"path\":\"/users/1 OR 1=1\",\"query\":{},\"params\":{\"id\":\"1 OR 1=1\"}}"
     }
   ]
 }

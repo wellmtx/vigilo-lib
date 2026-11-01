@@ -28,6 +28,17 @@ export interface Threat {
   /** Regra que disparou (útil para depurar falsos positivos). */
   rule: string;
   layer: ThreatLayer;
+  /** Só na camada `rasp`: o ponto do código da aplicação que chamou o driver. */
+  callsite?: Callsite;
+}
+
+/** Local no código da aplicação, relativo ao diretório de trabalho do processo. */
+export interface Callsite {
+  /** Caminho relativo, com `/` (ex.: `src/routes/users.ts`). */
+  file: string;
+  line: number;
+  column: number | null;
+  function: string | null;
 }
 
 export type HeaderValue = string | string[] | undefined;

@@ -1,4 +1,4 @@
-import { clip, clipThreats, LIMITS } from './contract.js';
+import { clip, clipThreats, LIMITS, RELEASE_PATTERN } from './contract.js';
 import { detect, highestSeverity } from './detectors/index.js';
 import type { InputSources, RequestContext } from './rasp/context.js';
 import { buildPayload, type MaskingOptions } from './masking.js';
@@ -26,6 +26,11 @@ export interface VigiloOptions {
   configIntervalMs?: number;
   /** Severidade mínima para bloquear no modo `block`. Padrão: 4. */
   blockSeverity?: Severity;
+  /**
+   * Versão do código em execução, de preferência o SHA do commit. Com ela, a plataforma acha no
+   * repositório o arquivo e a linha apontados pela RASP. Padrão: `VIGILO_RELEASE`.
+   */
+  release?: string;
   /** URL da API de ingestão. Padrão: `VIGILO_ENDPOINT` ou o endpoint da plataforma. */
   endpoint?: string;
   /** Quando confiar em `X-Forwarded-For`. Padrão: `false`. */
@@ -76,6 +81,7 @@ export function createVigilo(options: VigiloOptions = {}): VigiloClient {
   const transport = new EventTransport({
     apiKey: options.apiKey,
     endpoint,
+    release: resolveRelease(options.release ?? process.env.VIGILO_RELEASE, logger),
     batchSize: options.batchSize,
     flushIntervalMs: options.flushIntervalMs,
     maxBufferSize: options.maxBufferSize,
@@ -183,6 +189,17 @@ function routeParams(outcome: ResponseOutcome): unknown {
   } catch {
     return undefined;
   }
+}
+
+/** `release` fora do formato do contrato não é enviado: a ingestão recusaria o lote inteiro. */
+function resolveRelease(value: string | undefined, logger: Logger | undefined): string | null {
+  const release = value?.trim();
+  if (!release) return null;
+  if (release.length > LIMITS.release || !RELEASE_PATTERN.test(release)) {
+    logger?.warn('vigilo: release ignorado (use o SHA do commit, uma tag ou uma versão)', { release: release.slice(0, 80) });
+    return null;
+  }
+  return release;
 }
 
 function clamp(value: number): number {

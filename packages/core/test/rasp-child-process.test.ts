@@ -1,6 +1,7 @@
 import childProcess, { execSync as namedExecSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { callsiteAt } from './fixtures.js';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
 import { instrumentChildProcess } from '../src/rasp/child-process.js';
@@ -90,7 +91,7 @@ describe('instrumentChildProcess', () => {
     const out = runWithContext(ctx, () => childProcess.execSync(`echo ola ${attack.query.name}`).toString());
     expect(out).toContain('injetado');
     expect(ctx.threats).toEqual([
-      { type: 'cmdi', severity: 5, location: 'query.name', rule: 'rasp.cmdi.child_process', layer: 'rasp' },
+      { type: 'cmdi', severity: 5, location: 'query.name', rule: 'rasp.cmdi.child_process', layer: 'rasp', callsite: callsiteAt('rasp-child-process.test.ts', 91) },
     ]);
   });
 

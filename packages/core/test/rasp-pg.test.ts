@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { callsiteAt } from './fixtures.js';
 import { createVigilo } from '../src/client.js';
 import { runWithContext, type InputSources, type RequestContext } from '../src/rasp/context.js';
 import { instrumentPg } from '../src/rasp/pg.js';
@@ -30,7 +31,7 @@ describe('instrumentPg', () => {
     await runWithContext(ctx, () => client.query(sqlFor('1 OR 1=1')));
     expect(clientQuery).toHaveBeenCalledOnce();
     expect(ctx.threats).toEqual([
-      { type: 'sqli', severity: 5, location: 'params.id', rule: 'rasp.sqli.pg', layer: 'rasp' },
+      { type: 'sqli', severity: 5, location: 'params.id', rule: 'rasp.sqli.pg', layer: 'rasp', callsite: callsiteAt('rasp-pg.test.ts', 31) },
     ]);
     expect(ctx.blocked).toBe(false);
   });
