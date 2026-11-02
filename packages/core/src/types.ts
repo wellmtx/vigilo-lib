@@ -32,13 +32,19 @@ export interface Threat {
   callsite?: Callsite;
 }
 
-/** Local no código da aplicação, relativo ao diretório de trabalho do processo. */
-export interface Callsite {
+/** Um frame da aplicação, relativo ao diretório de trabalho do processo. */
+export interface CallsiteFrame {
   /** Caminho relativo, com `/` (ex.: `src/routes/users.ts`). */
   file: string;
   line: number;
   column: number | null;
   function: string | null;
+}
+
+/** Local no código da aplicação que chamou o driver. */
+export interface Callsite extends CallsiteFrame {
+  /** Quem chamou, do mais próximo ao mais distante (ex.: use case, depois o handler da rota). Ausente sem chamadores na aplicação. */
+  callers?: CallsiteFrame[];
 }
 
 export type HeaderValue = string | string[] | undefined;

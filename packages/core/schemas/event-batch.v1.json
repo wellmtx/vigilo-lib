@@ -259,6 +259,55 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "callers": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 8,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "file",
+                          "line",
+                          "column",
+                          "function"
+                        ],
+                        "properties": {
+                          "file": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "column": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "function": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }

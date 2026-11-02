@@ -17,10 +17,11 @@ export function request(overrides: Partial<NormalizedRequest> = {}): NormalizedR
 
 /** Callsite esperado quando o próprio teste chama o driver (o caminho depende do diretório do vitest). */
 export function callsiteAt(testFile: string, line: number) {
-  return {
+  // Os chamadores dependem do vitest: o teste confere só o ponto da chamada.
+  return expect.objectContaining({
     file: expect.stringMatching(new RegExp(`(^|/)test/${testFile.replace(/\./g, '\\.')}$`)),
     line,
     column: expect.any(Number),
     function: null,
-  };
+  });
 }

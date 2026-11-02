@@ -72,7 +72,16 @@ client.record(rasp, {
         location: 'params.id',
         rule: 'rasp.sqli.pg',
         layer: 'rasp',
-        callsite: { file: 'src/routes/users.ts', line: 18, column: 27, function: 'getUser' },
+        callsite: {
+          file: 'src/repositories/users.ts',
+          line: 18,
+          column: 27,
+          function: 'findUserById',
+          callers: [
+            { file: 'src/usecases/get-user.ts', line: 9, column: 10, function: 'getUser' },
+            { file: 'src/routes/users.ts', line: 12, column: 3, function: null },
+          ],
+        },
       },
     ],
   },

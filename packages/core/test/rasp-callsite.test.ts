@@ -20,7 +20,36 @@ describe('pickCallsite', () => {
       ),
       cwd,
     );
-    expect(picked).toEqual({ file: 'src/repos/users.ts', line: 42, column: 18, function: 'UserRepo.find' });
+    expect(picked).toEqual({
+      file: 'src/repos/users.ts',
+      line: 42,
+      column: 18,
+      function: 'UserRepo.find',
+      callers: [{ file: 'src/routes/users.ts', line: 7, column: 3, function: 'handler' }],
+    });
+  });
+
+  it('leva o caminho da requisição em callers, sem dependências nem frames repetidos', () => {
+    const picked = pickCallsite(
+      stack(
+        'async findProductById (/srv/app/src/repositories/products.ts:11:20)',
+        'async getProduct (/srv/app/src/usecases/get-product.ts:8:10)',
+        'Layer.handle (/srv/app/node_modules/express/lib/router/layer.js:95:5)',
+        'async /srv/app/src/routes/products.ts:14:3',
+        'async /srv/app/src/routes/products.ts:14:3',
+      ),
+      cwd,
+    );
+    expect(picked?.callers).toEqual([
+      { file: 'src/usecases/get-product.ts', line: 8, column: 10, function: 'getProduct' },
+      { file: 'src/routes/products.ts', line: 14, column: 3, function: null },
+    ]);
+  });
+
+  it('limita os chamadores e omite o campo sem nenhum', () => {
+    const frames = Array.from({ length: 20 }, (_, i) => `f${i} (/srv/app/src/f${i}.ts:1:1)`);
+    expect(pickCallsite(stack(...frames), cwd)?.callers).toHaveLength(LIMITS.callers);
+    expect(pickCallsite(stack('f (/srv/app/a.js:1:1)'), cwd)).not.toHaveProperty('callers');
   });
 
   it('aceita URL file:// (ESM) e frame sem nome de função', () => {

@@ -152,10 +152,24 @@
           "rule": "rasp.sqli.pg",
           "layer": "rasp",
           "callsite": {
-            "file": "src/routes/users.ts",
+            "file": "src/repositories/users.ts",
             "line": 18,
             "column": 27,
-            "function": "getUser"
+            "function": "findUserById",
+            "callers": [
+              {
+                "file": "src/usecases/get-user.ts",
+                "line": 9,
+                "column": 10,
+                "function": "getUser"
+              },
+              {
+                "file": "src/routes/users.ts",
+                "line": 12,
+                "column": 3,
+                "function": null
+              }
+            ]
           }
         }
       ],

@@ -24,6 +24,8 @@ export const LIMITS = {
   rule: 64,
   callsiteFile: 256,
   callsiteFunction: 128,
+  /** Chamadores no caminho até o callsite. */
+  callers: 8,
   release: 64,
   /** Bytes do payload mais o sufixo `…[truncated]`. */
   payload: DEFAULT_PAYLOAD_LIMIT + 16,
@@ -84,6 +86,13 @@ export function clipThreats(threats: Threat[]): Threat[] {
 
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
 
+const FRAME_PROPERTIES = {
+  file: { type: 'string', minLength: 1, maxLength: LIMITS.callsiteFile },
+  line: { type: 'integer', minimum: 1 },
+  column: nullable({ type: 'integer', minimum: 1 }),
+  function: nullable({ type: 'string', minLength: 1, maxLength: LIMITS.callsiteFunction }),
+} as const;
+
 const THREAT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -99,10 +108,13 @@ const THREAT_SCHEMA = {
       additionalProperties: false,
       required: ['file', 'line', 'column', 'function'],
       properties: {
-        file: { type: 'string', minLength: 1, maxLength: LIMITS.callsiteFile },
-        line: { type: 'integer', minimum: 1 },
-        column: nullable({ type: 'integer', minimum: 1 }),
-        function: nullable({ type: 'string', minLength: 1, maxLength: LIMITS.callsiteFunction }),
+        ...FRAME_PROPERTIES,
+        callers: {
+          type: 'array',
+          minItems: 1,
+          maxItems: LIMITS.callers,
+          items: { type: 'object', additionalProperties: false, required: ['file', 'line', 'column', 'function'], properties: FRAME_PROPERTIES },
+        },
       },
     },
   },
